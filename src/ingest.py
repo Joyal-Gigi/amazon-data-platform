@@ -1,5 +1,6 @@
 from pyspark.sql import SparkSession
 from config import ORDERS_CSV, APP_NAME
+from schema import orders_schema
 
 def main():
     # Initialize Spark session
@@ -13,7 +14,7 @@ def main():
     df = spark.read.csv(
         str(ORDERS_CSV),
         header=True,
-        inferSchema=True
+        schema=orders_schema
     )
 
     # Display the number of rows, schema, and sample data
