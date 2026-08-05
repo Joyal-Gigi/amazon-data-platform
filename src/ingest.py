@@ -1,5 +1,4 @@
 from pyspark.sql import SparkSession
-
 from config import (
     APP_NAME,
     ORDERS_CSV,
@@ -7,7 +6,7 @@ from config import (
 )
 from schema import orders_schema
 from validation import validate_orders
-from writer import write_bronze
+from writer import write_parquet
 
 
 def main():
@@ -52,7 +51,7 @@ def main():
         invalid_df.show(5, truncate=False)
 
     # Write Bronze Parquet
-    write_bronze(valid_df, BRONZE_ORDERS_DIR)
+    write_parquet(valid_df, BRONZE_ORDERS_DIR)
 
     # Verify output
     bronze_df = spark.read.parquet(str(BRONZE_ORDERS_DIR))
