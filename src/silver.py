@@ -23,7 +23,11 @@ def main():
     bronze_df = spark.read.parquet(str(BRONZE_ORDERS_DIR))
 
     #cleanse the data
-    cleaned_df = cleanse_orders(bronze_df)
+    cleaned_df, duplicate_count = cleanse_orders(bronze_df)
+    print("\nDeduplication Summary")
+    print("---------------------")
+    print("Business Key       : order_id")
+    print(f"Duplicates Removed : {duplicate_count}")
 
     #apply null handling
     null_handled_df = handle_nulls(cleaned_df)
