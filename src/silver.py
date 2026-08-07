@@ -1,4 +1,5 @@
 from pyspark.sql import SparkSession
+from cleansing import cleanse_orders
 from config import (
     APP_NAME,
     BRONZE_ORDERS_DIR,
@@ -19,6 +20,9 @@ def main():
 
     # Read Bronze Parquet
     bronze_df = spark.read.parquet(str(BRONZE_ORDERS_DIR))
+
+    #cleanse the data
+    bronze_df = cleanse_orders(bronze_df)
 
     # Apply transformations
     silver_df = transform_orders(bronze_df)
