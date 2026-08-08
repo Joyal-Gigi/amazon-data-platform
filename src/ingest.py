@@ -7,62 +7,79 @@ from config import (
 from schema import orders_schema
 from validation import validate_orders
 from writer import write_parquet
+from logger import logger
 
 
 def main():
     """Run the Orders ingestion pipeline."""
 
-    # Create Spark session
-    spark = (
-        SparkSession.builder
-        .appName(APP_NAME)
-        .getOrCreate()
-    )
+    try:
+        logger.info("Starting Bronze pipeline for Orders")
 
-    # Read Orders CSV using explicit schema
-    orders_df = (
-        spark.read
-        .option("header", True)
-        .schema(orders_schema)
-        .csv(str(ORDERS_CSV))
-    )
+        spark = None
 
-    # Validate records
-    valid_df, invalid_df, summary = validate_orders(orders_df)
+        # Create Spark session
+        spark = (
+            SparkSession.builder
+            .appName(APP_NAME)
+            .getOrCreate()
+        )
 
-    # Validation summary
-    print("\nValidation Summary")
-    print("-------------------")
-    print(f"Total Records   : {summary['total_records']}")
-    print(f"Valid Records   : {summary['valid_records']}")
-    print(f"Invalid Records : {summary['invalid_records']}")
+        # Read Orders CSV using explicit schema
+        logger.info("Reading Orders CSV from %s", ORDERS_CSV)
+        orders_df = (
+            spark.read
+            .option("header", True)
+            .schema(orders_schema)
+            .csv(str(ORDERS_CSV))
+        )
 
-    # Display schema
-    print("\nSchema")
-    valid_df.printSchema()
+        # Validate records
+        logger.info("Validating Orders records")
+        valid_df, invalid_df, summary = validate_orders(orders_df)
 
-    # Display sample valid records
-    print("\nSample Valid Records")
-    valid_df.show(5, truncate=False)
+        # Validation summary
+        logger.info("Validation Summary: Total Records: %s," \
+        " Valid Records: %s," \
+        " Invalid Records: %s",
+                    summary["total_records"],
+                    summary["valid_records"],
+                    summary["invalid_records"]
+                    )
 
-    # Display invalid records (if any)
-    if summary["invalid_records"] > 0:
-        print("\nSample Invalid Records")
-        invalid_df.show(5, truncate=False)
+        # Display schema
+        logger.info("Displaying schema for valid records")
+        valid_df.printSchema()
 
-    # Write Bronze Parquet
-    write_parquet(valid_df, BRONZE_ORDERS_DIR)
+        # Display sample valid records
+        logger.info("Displaying sample valid records")
+        valid_df.show(5, truncate=False)
 
-    # Verify output
-    bronze_df = spark.read.parquet(str(BRONZE_ORDERS_DIR))
+        # Display invalid records (if any)
+        if summary["invalid_records"] > 0:
+            logger.info("Displaying sample invalid records")
+            invalid_df.show(5, truncate=False)
 
-    print("\nBronze Layer Verification")
-    print("-------------------------")
-    print(f"Rows Written : {bronze_df.count()}")
+        # Write Bronze Parquet
+        write_parquet(valid_df, BRONZE_ORDERS_DIR)
 
-    bronze_df.show(5, truncate=False)
+        # Verify output
+        bronze_df = spark.read.parquet(str(BRONZE_ORDERS_DIR))
 
-    spark.stop()
+        logger.info("Bronze Layer Verification")
+        logger.info("-------------------------")
+        logger.info("Rows Written : %s", bronze_df.count())
+
+        bronze_df.show(5, truncate=False)
+        logger.info("Bronze pipeline for Orders completed successfully.")
+
+
+    except Exception as e:
+        logger.exception("Bronze pipeline failed")
+
+    finally:
+        if spark is not None:
+            spark.stop()
 
 
 if __name__ == "__main__":
